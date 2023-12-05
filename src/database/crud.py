@@ -1,0 +1,118 @@
+"""ORM взаимодествие со всеми моделями из БД"""
+
+import sqlalchemy.exc
+from sqlalchemy import select, delete
+from sqlalchemy.orm import selectinload
+
+from src.database import async_session_factory
+from src.database.models import User, Manager, Invoice
+
+
+class UserORM:
+    """Обьект инициализации методов для пользователя"""
+    def __init__(self):
+        self.session = async_session_factory()
+
+    async def insert_user(self, ut_id: int) -> int | None:
+        """Метод создает пользователя"""
+        async with self.session as session:
+            user = User(telegram_id=ut_id)
+            session.add(user)
+            try:
+                await session.flush()
+                res = user.id
+                await session.commit()
+                return res
+            except sqlalchemy.exc.IntegrityError:
+                await session.close()
+        return None
+
+    async def delete_user(self, telegram_id: int) -> bool:
+        """Метод удаляет пользователя,
+         меняет значение is_active на False,
+         фактически пользователь остается в БД"""
+        async with self.session as session:
+            query = select(User).where(User.telegram_id == telegram_id)
+            obj = await session.scalar(query)
+            obj.is_active = False
+            await session.flush()
+            await session.commit()
+        return True
+
+    async def add_manager(self, ut_id: int, manager_id: int):
+        """Метод добавляет менеджера к пользователю"""
+        async with self.session as session:
+            query = select(User).where(User.telegram_id == ut_id)
+            obj = await session.scalar(query)
+            obj.manager_id = manager_id
+            await session.flush()
+            await session.commit()
+
+    async def get_user(self, ut_id: int) -> User | None:
+        """Метод вызывает пользователя из БД"""
+        async with self.session as session:
+            query = select(User).where(User.telegram_id == ut_id)
+            res = await session.scalar(query)
+            return res
+
+
+class ManagerORM:
+    """Обьект инициализации методов для менеджера"""
+    def __init__(self):
+        self.session = async_session_factory()
+
+    async def insert_manager(self, mt_id: int) -> int | None:
+        """Метод создает менеджера"""
+        async with self.session as session:
+            manager = Manager(telegram_id=mt_id)
+            session.add(manager)
+            try:
+                await session.flush()
+                res = manager.id
+                await session.commit()
+                return res
+            except sqlalchemy.exc.IntegrityError:
+                await session.close()
+        return None
+
+    async def get_clients(self, manager_id: int) -> Manager | None:
+        """Метод возвращает все пользователей
+         сопоставленных с указанным менеджером"""
+        async with self.session as session:
+            query = select(Manager).where(
+                Manager.id == manager_id
+            ).options(selectinload(Manager.clients))
+            res = await session.execute(query)
+            result = res.scalar()
+        return result
+
+    async def delete_manager(self, manager_id: int):
+        """Метод удаляет менеджера и выставляет всем
+         подконтрольным пользователям значение manager_id=None"""
+        async with self.session as session:
+            stmt = delete(Manager).where(Manager.id == manager_id)
+            await session.execute(stmt)
+            await session.commit()
+
+    async def get_manager(self, manager_id: int) -> Manager | None:
+        """Метод возвращает всю информацию о менеджере
+         без подгрузки подконтрольных пользователей"""
+        async with self.session as session:
+            res = await session.get(Manager, manager_id)
+        return res
+
+
+class InvoiceORM:
+    """Обьект инициализации методов для накладных"""
+    def __init__(self):
+        self.session = async_session_factory()
+
+    async def insert_invoice(self, data: dict) -> int:
+        """Метод создает накладную"""
+        async with self.session as session:
+            invoice = Invoice(**data)
+            session.add(invoice)
+            await session.flush()
+            res = invoice.id
+            await session.commit()
+        return res
