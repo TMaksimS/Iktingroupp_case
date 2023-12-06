@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from src.database.models import User, Manager, Invoice
+from src.database.models import User, Manager, Invoice, Claim
 from src.database import Base
 from src.settings import REAL_DATABASE_URL
 

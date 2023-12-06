@@ -9,7 +9,8 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
-    text
+    text,
+    ARRAY
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -92,3 +93,19 @@ class Invoice(Base):
     user: Mapped["User"] = relationship(
         back_populates="invoices"
     )
+
+
+class Claim(Base):
+    """Модель претензии"""
+    __tablename__ = "claims"
+    id: Mapped[IntPK]
+    invoice_id: Mapped[int] = mapped_column(
+        ForeignKey("invoices.id", ondelete="CASCADE")
+    )
+    email: Mapped[str]
+    description: Mapped[str]
+    required_amount: Mapped[int]
+    photos: Mapped[list[str]] = mapped_column(ARRAY(String()), nullable=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[CreatedAT]
+    updated_at: Mapped[UpdatedAT]

@@ -5,7 +5,7 @@ from sqlalchemy import select, delete, update
 from sqlalchemy.orm import selectinload
 
 from src.database import async_session_factory
-from src.database.models import User, Manager, Invoice
+from src.database.models import User, Manager, Invoice, Claim
 
 
 class UserORM:
@@ -28,17 +28,19 @@ class UserORM:
                 await session.close()
         return None
 
-    async def delete_user(self, telegram_id: int) -> bool:
+    async def delete_user(self, telegram_id: int) -> bool | None:
         """Метод удаляет пользователя,
          меняет значение is_active на False,
          фактически пользователь остается в БД"""
         async with self.session as session:
             query = select(User).where(User.telegram_id == telegram_id)
             obj = await session.scalar(query)
-            obj.is_active = False
-            await session.flush()
-            await session.commit()
-        return True
+            if obj:
+                obj.is_active = False
+                await session.flush()
+                await session.commit()
+                return True
+        return None
 
     async def add_manager(self, ut_id: int, manager_id: int):
         """Метод добавляет менеджера к пользователю"""
@@ -158,3 +160,42 @@ class InvoiceORM:
             stmt = delete(Invoice).where(Invoice.id == invoice_id)
             await session.execute(stmt)
             await session.commit()
+
+
+class ClaimORM:
+    """Обьект инициализации методов для претензий"""
+    def __init__(self):
+        self.session = async_session_factory()
+
+    async def insert_claim(self, data: dict) -> int | None:
+        """Метод создает претензию"""
+        async with self.session as session:
+            obj = Claim(**data)
+            session.add(obj)
+            try:
+                await session.flush()
+                res = obj.id
+                await session.commit()
+                return res
+            except IntegrityError:
+                await session.rollback()
+                await session.close()
+        return None
+
+    async def delete_claim(self, claim_id: int) -> bool | None:
+        """Метод удаляет претензию (фактически меняет флаг активности)"""
+        async with self.session as session:
+            query = select(Claim).where(Claim.id == claim_id)
+            obj = await session.scalar(query)
+            if obj:
+                obj.is_active = False
+                await session.flush()
+                await session.commit()
+                return True
+            return None
+
+    async def get_claim(self, claim_id: int) -> Claim | None:
+        """Метод возвращает претензию из Бд по ее ID"""
+        async with self.session as session:
+            res = await session.get(Claim, claim_id)
+        return res

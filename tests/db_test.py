@@ -2,7 +2,12 @@
 
 import pytest
 
-from src.database.crud import UserORM, ManagerORM, InvoiceORM
+from src.database.crud import (
+    UserORM,
+    ManagerORM,
+    InvoiceORM,
+    ClaimORM
+)
 
 
 @pytest.mark.parametrize(
@@ -10,7 +15,8 @@ from src.database.crud import UserORM, ManagerORM, InvoiceORM
     [
         (123456, 1),
         (123456, None),
-        (555666, 3)
+        (555666, 3),
+        (777888, 4)
     ]
 )
 async def test_insert_user(ut_id, res):
@@ -126,7 +132,18 @@ async def test_delete_manager(manager_id, ut_id, res):
              "to_location": "Russia, Rostov",
              "payment": "cash",
              "user_id": 1
-         }, None)
+         }, None),
+        ({
+             "description": "test invoice",
+             "weight": 16,
+             "height": 10,
+             "length": 5,
+             "width": 10,
+             "where_from": "Russia, Saratov",
+             "to_location": "Russia, Rostov",
+             "payment": "DC",
+             "user_id": 4
+         }, 2)
     ]
 )
 async def test_insert_invoice(data, invoice_id):
@@ -139,7 +156,8 @@ async def test_insert_invoice(data, invoice_id):
     "invoice_id, res",
     [
         (1, "Russia, Rostov"),
-        (2, None)
+        (2, "Russia, Rostov"),
+        (3, None)
     ]
 )
 async def test_get_invoice(invoice_id, res):
@@ -155,7 +173,8 @@ async def test_get_invoice(invoice_id, res):
     "invoice_id, data, res",
     [
         (1, {"weight": 16}, True),
-        (2, {"weight": 17}, None)
+        (2, {"weight": 17}, True),
+        (3, {"weight": 18}, None)
     ]
 )
 async def test_edit_invoice(invoice_id, data, res):
@@ -188,3 +207,56 @@ async def test_delete_invoice(res, ut_id):
     await InvoiceORM().delete_invoice(1)
     user = await UserORM().get_user_with_invoices(ut_id)
     assert len(user.invoices) == res
+
+
+@pytest.mark.parametrize(
+    "data, claim_id",
+    [
+        ({
+             "invoice_id": 2,
+             "email": "Example2023@gmail.com",
+             "description": "Test claim",
+             "required_amount": 5000,
+             "photos": ["url1", "url2"]
+         }, 1),
+        ({
+             "invoice_id": 56,
+             "email": "Example2023@gmail.com",
+             "description": "Test claim",
+             "required_amount": 5000,
+             "photos": ["url1", "url2"]}, None)
+
+    ]
+)
+async def test_insert_claim(data, claim_id):
+    """Тест проверки создания претензии"""
+    res = await ClaimORM().insert_claim(data)
+    assert res == claim_id
+
+
+@pytest.mark.parametrize(
+    "claim_id, res",
+    [
+        (1, True),
+        (2, None)
+    ]
+)
+async def test_delete_claim(claim_id, res):
+    """Тест удаления претензии"""
+    result = await ClaimORM().delete_claim(claim_id)
+    assert result == res
+
+@pytest.mark.parametrize(
+    "claim_id, res",
+    [
+        (1, "Example2023@gmail.com"),
+        (2, None)
+    ]
+)
+async def test_get_claim(claim_id, res):
+    """Тест получения данных из претензии"""
+    obj = await ClaimORM().get_claim(claim_id)
+    if obj:
+        assert obj.email == res
+    else:
+        assert obj == res
