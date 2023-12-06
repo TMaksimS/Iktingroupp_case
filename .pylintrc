@@ -1,0 +1,6 @@
+[MESSAGES CONTROL]
+disable = R0903
+
+[MASTER]
+ignore-paths = src/database/migrations
+init-hook='import sys; sys.path.append(".")'
