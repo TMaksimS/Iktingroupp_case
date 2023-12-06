@@ -1,7 +1,7 @@
 """ORM взаимодествие со всеми моделями из БД"""
 
-import sqlalchemy.exc
-from sqlalchemy import select, delete
+from sqlalchemy.exc import IntegrityError, DBAPIError
+from sqlalchemy import select, delete, update
 from sqlalchemy.orm import selectinload
 
 from src.database import async_session_factory
@@ -10,6 +10,7 @@ from src.database.models import User, Manager, Invoice
 
 class UserORM:
     """Обьект инициализации методов для пользователя"""
+
     def __init__(self):
         self.session = async_session_factory()
 
@@ -23,7 +24,7 @@ class UserORM:
                 res = user.id
                 await session.commit()
                 return res
-            except sqlalchemy.exc.IntegrityError:
+            except IntegrityError:
                 await session.close()
         return None
 
@@ -55,9 +56,20 @@ class UserORM:
             res = await session.scalar(query)
             return res
 
+    async def get_user_with_invoices(self, ut_id: int) -> User | None:
+        """Метод возвращает пользователя со списком его накладных"""
+        async with self.session as session:
+            query = select(User).where(
+                User.telegram_id == ut_id
+            ).options(selectinload(User.invoices))
+            res = await session.execute(query)
+            result = res.scalar()
+        return result
+
 
 class ManagerORM:
     """Обьект инициализации методов для менеджера"""
+
     def __init__(self):
         self.session = async_session_factory()
 
@@ -71,11 +83,11 @@ class ManagerORM:
                 res = manager.id
                 await session.commit()
                 return res
-            except sqlalchemy.exc.IntegrityError:
+            except IntegrityError:
                 await session.close()
         return None
 
-    async def get_clients(self, manager_id: int) -> Manager | None:
+    async def get_manager_with_clients(self, manager_id: int) -> Manager | None:
         """Метод возвращает все пользователей
          сопоставленных с указанным менеджером"""
         async with self.session as session:
@@ -104,15 +116,45 @@ class ManagerORM:
 
 class InvoiceORM:
     """Обьект инициализации методов для накладных"""
+
     def __init__(self):
         self.session = async_session_factory()
 
-    async def insert_invoice(self, data: dict) -> int:
+    async def insert_invoice(self, data: dict) -> int | None:
         """Метод создает накладную"""
         async with self.session as session:
             invoice = Invoice(**data)
             session.add(invoice)
-            await session.flush()
-            res = invoice.id
+            try:
+                await session.flush()
+                res = invoice.id
+                await session.commit()
+                return res
+            except DBAPIError:
+                await session.rollback()
+                await session.close()
+        return None
+
+    async def get_invoice(self, invoice_id: int) -> Invoice | None:
+        """Метод возвращает накладную из БД по ее ID"""
+        async with self.session as session:
+            invoice = await session.get(Invoice, invoice_id)
+        return invoice
+
+    async def edit_invoice(self, invoice_id: int, data: dict) -> bool | None:
+        """Метод обновляет накладную"""
+        async with self.session as session:
+            stmt = update(Invoice).where(Invoice.id == invoice_id).values(**data).returning(Invoice)
+            obj = await session.execute(stmt)
+            if obj.scalar():
+                await session.commit()
+                return True
+            await session.rollback()
+            return None
+
+    async def delete_invoice(self, invoice_id: int):
+        """Метод удаляет накладную"""
+        async with self.session as session:
+            stmt = delete(Invoice).where(Invoice.id == invoice_id)
+            await session.execute(stmt)
             await session.commit()
-        return res

@@ -1,6 +1,7 @@
 """Декларативные модели для БД"""
 
 import datetime
+import enum
 from typing import Annotated, Optional, List
 
 from sqlalchemy import (
@@ -59,6 +60,12 @@ class Manager(Base):
     )
 
 
+class PaymentType(enum.Enum):
+    """Типы оплаты"""
+    CASH = "Cash"
+    DC = "DebitCard"
+
+
 class Invoice(Base):
     """Модель накладной"""
     __tablename__ = "invoices"
@@ -76,7 +83,7 @@ class Invoice(Base):
     to_location: Mapped[str]
     created_at: Mapped[CreatedAT]
     updated_at: Mapped[UpdatedAT]
-    payment: Mapped[int]
+    payment: Mapped["PaymentType"]
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=True

@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.database.crud import UserORM, ManagerORM
+from src.database.crud import UserORM, ManagerORM, InvoiceORM
 
 
 @pytest.mark.parametrize(
@@ -81,7 +81,7 @@ async def test_add_manager(ut_id, manager_id):
 )
 async def test_manager_get_clients(manager_id, ut_id1, ut_id2):
     """Тест получения всех пользователей приписанных к менеджеру"""
-    obj = await ManagerORM().get_clients(manager_id)
+    obj = await ManagerORM().get_manager_with_clients(manager_id)
     assert obj.clients[0].telegram_id == ut_id1
     assert obj.clients[1].telegram_id == ut_id2
 
@@ -100,3 +100,91 @@ async def test_delete_manager(manager_id, ut_id, res):
     manager = await ManagerORM().get_manager(manager_id)
     assert user.manager_id == res
     assert manager == res
+
+
+@pytest.mark.parametrize(
+    "data, invoice_id",
+    [
+        ({
+             "description": "test invoice",
+             "weight": 15.6,
+             "height": 10,
+             "length": 5,
+             "width": 10,
+             "where_from": "Russia, Saratov",
+             "to_location": "Russia, Rostov",
+             "payment": "CASH",
+             "user_id": 1
+         }, 1),
+        ({
+             "description": "test invoice",
+             "weight": 15.6,
+             "height": 10,
+             "length": 5,
+             "width": 10,
+             "where_from": "Russia, Saratov",
+             "to_location": "Russia, Rostov",
+             "payment": "cash",
+             "user_id": 1
+         }, None)
+    ]
+)
+async def test_insert_invoice(data, invoice_id):
+    """Тест создания новой накладной"""
+    res = await InvoiceORM().insert_invoice(data)
+    assert res == invoice_id
+
+
+@pytest.mark.parametrize(
+    "invoice_id, res",
+    [
+        (1, "Russia, Rostov"),
+        (2, None)
+    ]
+)
+async def test_get_invoice(invoice_id, res):
+    """Тест получения данных из накладной"""
+    invoice = await InvoiceORM().get_invoice(invoice_id)
+    if invoice:
+        assert invoice.to_location == res
+    else:
+        assert invoice == res
+
+
+@pytest.mark.parametrize(
+    "invoice_id, data, res",
+    [
+        (1, {"weight": 16}, True),
+        (2, {"weight": 17}, None)
+    ]
+)
+async def test_edit_invoice(invoice_id, data, res):
+    """Тест обновления данных в накладной"""
+    upd_invoice = await InvoiceORM().edit_invoice(invoice_id, data)
+    assert upd_invoice == res
+
+
+@pytest.mark.parametrize(
+    "ut_id, count",
+    [
+        (123456, 1),
+        (555666, 0)
+    ]
+)
+async def test_get_user_with_invoices(ut_id, count):
+    """Тест проверки количества закрепленных накладных у пользователя"""
+    res = await UserORM().get_user_with_invoices(ut_id)
+    assert len(res.invoices) == count
+
+
+@pytest.mark.parametrize(
+    "res, ut_id",
+    [
+        (0, 123456),
+    ]
+)
+async def test_delete_invoice(res, ut_id):
+    """Тест удаление накладной"""
+    await InvoiceORM().delete_invoice(1)
+    user = await UserORM().get_user_with_invoices(ut_id)
+    assert len(user.invoices) == res
