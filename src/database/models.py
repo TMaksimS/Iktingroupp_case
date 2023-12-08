@@ -26,11 +26,20 @@ UpdatedAT = Annotated[datetime.datetime, mapped_column(
 )]
 
 
+class RoleType(enum.Enum):
+    """Уровни доступа"""
+    USER = "user"
+    MANAGER = "manager"
+    ADMIN = "admin"
+    SUPERUSER = "superuser"
+
+
 class User(Base):
     """Модель пользователя"""
     __tablename__ = "users"
     id: Mapped[IntPK]
     telegram_id: Mapped[int] = mapped_column(Integer(), unique=True)
+    role: Mapped["RoleType"] = mapped_column(default=RoleType.USER)
     created_at: Mapped[CreatedAT]
     updated_at: Mapped[UpdatedAT]
     is_active: Mapped[bool] = mapped_column(default=True)

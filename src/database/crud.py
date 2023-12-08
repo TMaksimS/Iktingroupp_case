@@ -5,7 +5,8 @@ from sqlalchemy import select, delete, update
 from sqlalchemy.orm import selectinload
 
 from src.database import async_session_factory
-from src.database.models import User, Manager, Invoice, Claim
+from src.database.models import User, Manager, Invoice, Claim, RoleType
+from src.config import LOGER
 
 
 class UserORM:
@@ -14,10 +15,12 @@ class UserORM:
     def __init__(self):
         self.session = async_session_factory()
 
-    async def insert_user(self, ut_id: int) -> int | None:
+    async def insert_user(self, ut_id: int, role: RoleType = None) -> int | None:
         """Метод создает пользователя"""
         async with self.session as session:
             user = User(telegram_id=ut_id)
+            if role:
+                user.role = role
             session.add(user)
             try:
                 await session.flush()
@@ -67,6 +70,18 @@ class UserORM:
             res = await session.execute(query)
             result = res.scalar()
         return result
+
+    @LOGER.catch
+    async def update_user(self, ut_id: int, **kwargs) -> bool | None:
+        """Метод обновляет информацию о пользователе"""
+        async with self.session as session:
+            stmt = update(User).where(User.telegram_id == ut_id).values(kwargs).returning(User)
+            obj = await session.execute(stmt)
+            if obj.scalar():
+                await session.commit()
+                return True
+            await session.rollback()
+            return None
 
 
 class ManagerORM:
@@ -146,7 +161,9 @@ class InvoiceORM:
     async def edit_invoice(self, invoice_id: int, data: dict) -> bool | None:
         """Метод обновляет накладную"""
         async with self.session as session:
-            stmt = update(Invoice).where(Invoice.id == invoice_id).values(**data).returning(Invoice)
+            stmt = update(Invoice).where(
+                Invoice.id == invoice_id
+            ).values(**data).returning(Invoice)
             obj = await session.execute(stmt)
             if obj.scalar():
                 await session.commit()
@@ -164,6 +181,7 @@ class InvoiceORM:
 
 class ClaimORM:
     """Обьект инициализации методов для претензий"""
+
     def __init__(self):
         self.session = async_session_factory()
 
