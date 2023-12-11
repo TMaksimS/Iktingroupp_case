@@ -17,6 +17,7 @@ greenlet==3.0.1
 idna==3.6
 iniconfig==2.0.0
 isort==5.12.0
+loguru==0.7.2
 magic-filter==1.0.12
 Mako==1.3.0
 MarkupSafe==2.1.3
