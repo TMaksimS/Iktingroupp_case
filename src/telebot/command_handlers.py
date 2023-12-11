@@ -31,14 +31,7 @@ async def cmd_start(message: types.Message):
 @router.message(Command("id"))
 async def cmd_get_my_id(message: types.Message):
     """Команда /id"""
-    permission = await Permission(message.from_user.id).check(
-        [
-            RoleType.USER,
-            RoleType.MANAGER,
-            RoleType.ADMIN,
-            RoleType.SUPERUSER
-        ]
-    )
+    permission = await Permission(message.from_user.id).check()
     if permission:
         await message.answer(str(message.from_user.id))
 

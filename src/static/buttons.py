@@ -9,6 +9,7 @@ class UserButtons(enum.Enum):
     CR_CLAIM = "Создать претензию"
     CALL_MANAGER = "Обратиться в чат поддержки"
     BREAK_INVOICE = "Прекратить создание накладной"
+    GET_ARRAY_INVOICES = "Мои накладные"
 
 
 class ManagerButtons(enum.Enum):

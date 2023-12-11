@@ -24,6 +24,10 @@ class Buttons:
             text=UserButtons.CALL_MANAGER.value,
             callback_data="Call Manager")
         )
+        builder.row(types.InlineKeyboardButton(
+            text=UserButtons.GET_ARRAY_INVOICES.value,
+            callback_data=str(UserButtons.GET_ARRAY_INVOICES.name))
+        )
         return builder.as_markup()
 
     @staticmethod

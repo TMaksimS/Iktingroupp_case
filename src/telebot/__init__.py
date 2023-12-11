@@ -7,14 +7,14 @@ from src.database.models import RoleType
 from src.settings import BOT_TOKEN
 from src.config import LOGER
 from src.telebot.command_handlers import router as cmd_router
-from src.telebot.colback_handlers import router as cb_router
+from src.telebot.callback_handlers import router as cb_router
 from src.telebot.message_handler import router as msg_router
 
 
 async def create_superuser():
     """Корутинф для автосоздания суперпользователя"""
     await UserORM().insert_user(
-        ut_id=int(input("Insert ur Telegram ID: ")),
+        ut_id=477154673,
         role=RoleType.SUPERUSER
     )
 
