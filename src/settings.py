@@ -13,5 +13,7 @@ REAL_DATABASE_URL = env.str(
     "REAL_DATABASE_URL",
     default=f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:5432/{DB_NAME}"
 )
+REDIS_URL = env.str("REDIS_URL", default="127.0.0.1:6379")
+TIME_EXPIRE = env.float("REDIS_TIME_EXPIRE")
 
 BOT_TOKEN = env.str("BOT_TOKEN")

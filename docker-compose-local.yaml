@@ -13,6 +13,17 @@ services:
       - "5432:5432"
     networks:
       - custom
+  redis:
+    env_file:
+      - .env
+    image: redis:7.2-alpine3.19
+    restart: always
+    container_name: "redis_test"
+    hostname: localhost
+    ports:
+      - "6379:6379"
+    networks:
+      - custom
 networks:
   custom:
     driver: bridge

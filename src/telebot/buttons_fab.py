@@ -4,10 +4,12 @@ from aiogram import types
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from src.static.buttons import UserButtons, ManagerButtons
+from src.database.models import PaymentType
 
 
 class Buttons:
     """Хранитель кнопок"""
+
     @staticmethod
     def user_buttons():
         """Кнопки для пользователя"""
@@ -27,6 +29,24 @@ class Buttons:
         builder.row(types.InlineKeyboardButton(
             text=UserButtons.GET_ARRAY_INVOICES.value,
             callback_data=str(UserButtons.GET_ARRAY_INVOICES.name))
+        )
+        return builder.as_markup()
+
+    @staticmethod
+    def payment_type_buttons():
+        """Выбор типа оплаты"""
+        builder = InlineKeyboardBuilder()
+        builder.row(types.InlineKeyboardButton(
+            text=PaymentType.CASH.value,
+            callback_data=str(PaymentType.CASH.name))
+        )
+        builder.row(types.InlineKeyboardButton(
+            text=PaymentType.DC.value,
+            callback_data=str(PaymentType.DC.name))
+        )
+        builder.row(types.InlineKeyboardButton(
+            text=PaymentType.SBP.value,
+            callback_data=str(PaymentType.SBP.name))
         )
         return builder.as_markup()
 

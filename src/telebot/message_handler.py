@@ -7,6 +7,7 @@ from src.static.answers import CreateInvoice, UserAnswer
 from src.telebot.buttons_fab import Buttons
 from src.database.crud import InvoiceORM, UserORM
 from src.database.schemas import GetInvoice
+from src.database.redisdb import MyRedisCli
 
 router = Router()
 router.message.filter(F.reply_to_message.from_user.is_bot == True)
@@ -19,6 +20,12 @@ router.message.filter(F.reply_to_message.from_user.is_bot == True)
 async def invoice_description(message: types.Message):
     """принимает описание накладной"""
     LOGER.info(f"{message.text}")
+    user = await UserORM().get_user(message.from_user.id)
+    await MyRedisCli.insert_data(
+        f"I{message.from_user.id}",
+        description=message.text,
+        user_id=user.id
+    )
     await message.bot.edit_message_reply_markup(
         chat_id=message.from_user.id,
         message_id=message.reply_to_message.message_id,
@@ -36,6 +43,10 @@ async def invoice_description(message: types.Message):
 )
 async def invoice_weight(message: types.Message):
     """принимает вес накладной"""
+    await MyRedisCli.update_data(
+        f"I{message.from_user.id}",
+        weight=message.text
+    )
     LOGER.info(f"{message.text}")
     await message.bot.edit_message_reply_markup(
         chat_id=message.from_user.id,
@@ -54,6 +65,10 @@ async def invoice_weight(message: types.Message):
 )
 async def invoice_height(message: types.Message):
     """принимает высоту накладной"""
+    await MyRedisCli.update_data(
+        f"I{message.from_user.id}",
+        height=message.text
+    )
     LOGER.info(f"{message.text}")
     await message.bot.edit_message_reply_markup(
         chat_id=message.from_user.id,
@@ -72,6 +87,10 @@ async def invoice_height(message: types.Message):
 )
 async def invoice_length(message: types.Message):
     """принимает длину накладной"""
+    await MyRedisCli.update_data(
+        f"I{message.from_user.id}",
+        length=message.text
+    )
     LOGER.info(f"{message.text}")
     await message.bot.edit_message_reply_markup(
         chat_id=message.from_user.id,
@@ -90,6 +109,10 @@ async def invoice_length(message: types.Message):
 )
 async def invoice_width(message: types.Message):
     """принимает ширину накладной"""
+    await MyRedisCli.update_data(
+        f"I{message.from_user.id}",
+        width=message.text
+    )
     LOGER.info(f"{message.text}")
     await message.bot.edit_message_reply_markup(
         chat_id=message.from_user.id,
@@ -108,6 +131,10 @@ async def invoice_width(message: types.Message):
 )
 async def invoice_where_from(message: types.Message):
     """прнимает адрес отправки накладной"""
+    await MyRedisCli.update_data(
+        f"I{message.from_user.id}",
+        where_from=message.text
+    )
     LOGER.info(f"{message.text}")
     await message.bot.edit_message_reply_markup(
         chat_id=message.from_user.id,
@@ -126,6 +153,10 @@ async def invoice_where_from(message: types.Message):
 )
 async def invoice_to_location(message: types.Message):
     """принимает адрес доставки накладной"""
+    await MyRedisCli.update_data(
+        f"I{message.from_user.id}",
+        to_location=message.text
+    )
     LOGER.info(f"{message.text}")
     await message.bot.edit_message_reply_markup(
         chat_id=message.from_user.id,
@@ -133,27 +164,8 @@ async def invoice_to_location(message: types.Message):
         reply_markup=None
     )
     await message.answer(
-        CreateInvoice.PAYMENT.value,
-        reply_markup=Buttons.break_invoice()
-    )
-
-
-@LOGER.catch
-@router.message(
-    F.reply_to_message.text == CreateInvoice.PAYMENT.value,
-)
-async def invoice_payment(message: types.Message):
-    """принимает способ оплаты накладной"""
-    LOGER.info(f"{message.text}")
-    await message.bot.edit_message_reply_markup(
-        chat_id=message.from_user.id,
-        message_id=message.reply_to_message.message_id,
-        reply_markup=None
-    )
-    await message.answer("Конец обработки")
-    await message.answer(
-        UserAnswer.START.value,
-        reply_markup=Buttons.user_buttons()
+        text=CreateInvoice.PAYMENT.value,
+        reply_markup=Buttons.payment_type_buttons()
     )
 
 

@@ -137,6 +137,7 @@ class InvoiceORM:
     def __init__(self):
         self.session = async_session_factory()
 
+    @LOGER.catch
     async def insert_invoice(self, data: dict) -> int | None:
         """Метод создает накладную"""
         async with self.session as session:
@@ -147,7 +148,8 @@ class InvoiceORM:
                 res = invoice.id
                 await session.commit()
                 return res
-            except DBAPIError:
+            except DBAPIError as e:
+                LOGER.info(e)
                 await session.rollback()
                 await session.close()
         return None
