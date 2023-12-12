@@ -12,6 +12,12 @@ class UserButtons(enum.Enum):
     GET_ARRAY_INVOICES = "Мои накладные"
 
 
+class InvoiceButtons(enum.Enum):
+    """Текст для кнопок продолжения наклдной"""
+    CONTINUE = "Продолжить накладную"
+    END = "Удалить незаконченную накладную"
+
+
 class ManagerButtons(enum.Enum):
     """Текст на кнопках для менеджера"""
     GET_USER = "Информацию о пользователе"

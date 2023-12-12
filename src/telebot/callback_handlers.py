@@ -2,9 +2,12 @@
 
 from aiogram import Router, types, F
 
-from src.database.crud import UserORM
+from src.database.crud import UserORM, InvoiceORM
+from src.database.models import PaymentType
+from src.database.schemas import InsertInvoice
 from src.static.buttons import UserButtons
 from src.static.answers import CreateInvoice, UserAnswer
+from src.database.redisdb import MyRedisCli
 from src.telebot.buttons_fab import Buttons
 from src.config import LOGER
 
@@ -20,10 +23,18 @@ async def create_invoice(callback: types.CallbackQuery):
         message_id=callback.message.message_id,
         reply_markup=None
     )
-    await callback.message.answer(
-        text=CreateInvoice.DESCRIPTION.value,
-        reply_markup=Buttons.break_invoice()
-    )
+    redis_data = await MyRedisCli.get_data(f"I{callback.from_user.id}")
+    LOGER.info(redis_data)
+    LOGER.info(callback.from_user.id)
+    if redis_data:
+        await callback.message.answer(
+            text="Кажется у Вас есть незаконченная накладная, хотите продолжить?"
+        )
+    else:
+        await callback.message.answer(
+            text=CreateInvoice.DESCRIPTION.value,
+            reply_markup=Buttons.break_invoice()
+        )
 
 
 @LOGER.catch
@@ -71,4 +82,36 @@ async def get_array_invoices(callback: types.CallbackQuery):
         )
         await callback.message.answer(
             text=UserAnswer.GET_INVOICE.value
+        )
+
+
+@LOGER.catch
+@router.callback_query(F.data.in_(
+    (PaymentType.CASH.name, PaymentType.DC.name, PaymentType.SBP.name)
+))
+async def create_payment(callback: types.CallbackQuery):
+    """Обработка типа оплаты и запись результатов создания накладной в БД"""
+    await callback.bot.edit_message_reply_markup(
+        chat_id=callback.from_user.id,
+        message_id=callback.message.message_id,
+        reply_markup=None
+    )
+    await MyRedisCli.update_data(
+        f"I{callback.from_user.id}",
+        payment=callback.data
+    )
+    invoice = await MyRedisCli.get_data(f"I{callback.from_user.id}")
+    res = InsertInvoice(**invoice)
+    a = await InvoiceORM().insert_invoice(dict(res))
+    if a:
+        await callback.message.answer("Конец обработки")
+        await callback.message.answer(
+            UserAnswer.START.value,
+            reply_markup=Buttons.user_buttons()
+        )
+    else:
+        await callback.message.answer("Что то пошло не так, заполните накладную заново")
+        await callback.message.answer(
+            UserAnswer.START.value,
+            reply_markup=Buttons.user_buttons()
         )

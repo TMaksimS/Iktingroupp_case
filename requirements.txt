@@ -31,6 +31,7 @@ pydantic_core==2.14.5
 pylint==3.0.2
 pytest==7.4.3
 pytest-tornasync==0.6.0.post2
+redis==5.0.1
 SQLAlchemy==2.0.23
 tomli==2.0.1
 tomlkit==0.12.3

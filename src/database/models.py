@@ -72,8 +72,9 @@ class Manager(Base):
 
 class PaymentType(enum.Enum):
     """Типы оплаты"""
-    CASH = "Cash"
-    DC = "DebitCard"
+    CASH = "Наличная оплата"
+    DC = "Оплата банковской картой"
+    SBP = "Служба быстрых переводов"
 
 
 class Invoice(Base):
