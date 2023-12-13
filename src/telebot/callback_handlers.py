@@ -4,9 +4,9 @@ from aiogram import Router, types, F
 
 from src.database.crud import UserORM, InvoiceORM
 from src.database.models import PaymentType
-from src.database.schemas import InsertInvoice
-from src.static.buttons import UserButtons
-from src.static.answers import CreateInvoice, UserAnswer
+from src.database.schemas import InsertInvoice, InsertClaim
+from src.static.buttons import UserButtons, InvoiceButtons, ClaimButtons
+from src.static.answers import CreateInvoice, UserAnswer, CreateClaim
 from src.database.redisdb import MyRedisCli
 from src.telebot.buttons_fab import Buttons
 from src.config import LOGER
@@ -24,11 +24,10 @@ async def create_invoice(callback: types.CallbackQuery):
         reply_markup=None
     )
     redis_data = await MyRedisCli.get_data(f"I{callback.from_user.id}")
-    LOGER.info(redis_data)
-    LOGER.info(callback.from_user.id)
     if redis_data:
         await callback.message.answer(
-            text="Кажется у Вас есть незаконченная накладная, хотите продолжить?"
+            text=CreateInvoice.CONTINUE.value,
+            reply_markup=Buttons.continue_invoice_or_drop()
         )
     else:
         await callback.message.answer(
@@ -47,6 +46,44 @@ async def break_invoice(callback: types.CallbackQuery):
         reply_markup=None
     )
     await callback.message.answer(text=CreateInvoice.DROP.value)
+    await callback.message.answer(
+        text=UserAnswer.START.value,
+        reply_markup=Buttons.user_buttons()
+    )
+
+
+@LOGER.catch
+@router.callback_query(F.data == UserButtons.CR_CLAIM.name)
+async def create_claim(callback: types.CallbackQuery):
+    """Обработка запуска генерации претензии"""
+    await callback.bot.edit_message_reply_markup(
+        chat_id=callback.from_user.id,
+        message_id=callback.message.message_id,
+        reply_markup=None
+    )
+    redis_data = await MyRedisCli.get_data(f"C{callback.from_user.id}")
+    if redis_data:
+        await callback.message.answer(
+            text=CreateInvoice.CONTINUE.value,
+            reply_markup=Buttons.continue_claim_or_drop()
+        )
+    else:
+        await callback.message.answer(
+            text=CreateClaim.INVOICE_ID.value,
+            reply_markup=Buttons.break_claim()
+        )
+
+
+@LOGER.catch
+@router.callback_query(F.data == UserButtons.BREAK_CLAIM.name)
+async def break_claim(callback: types.CallbackQuery):
+    """Логика дропа генерации накладной"""
+    await callback.bot.edit_message_reply_markup(
+        chat_id=callback.from_user.id,
+        message_id=callback.message.message_id,
+        reply_markup=None
+    )
+    await callback.message.answer(text=CreateClaim.DROP.value)
     await callback.message.answer(
         text=UserAnswer.START.value,
         reply_markup=Buttons.user_buttons()
@@ -111,6 +148,74 @@ async def create_payment(callback: types.CallbackQuery):
         )
     else:
         await callback.message.answer("Что то пошло не так, заполните накладную заново")
+        await callback.message.answer(
+            UserAnswer.START.value,
+            reply_markup=Buttons.user_buttons()
+        )
+
+
+@LOGER.catch
+@router.callback_query(F.data.in_(
+    (InvoiceButtons.CONTINUE.name, InvoiceButtons.END.name)
+))
+async def continue_or_drop_invoice(callback: types.CallbackQuery):
+    """Продолжение или удаление накладной"""
+    await callback.bot.edit_message_reply_markup(
+        chat_id=callback.from_user.id,
+        message_id=callback.message.message_id,
+        reply_markup=None
+    )
+    if callback.data == InvoiceButtons.CONTINUE.name:
+        invoice = await MyRedisCli.get_data(f"I{callback.from_user.id}")
+        invoice_keys = list(invoice.keys())
+        schema = list(InsertInvoice.model_fields.keys())
+        for key in invoice_keys:
+            if key in schema:
+                schema.remove(key)
+        msg = ''
+        for i in CreateInvoice:
+            if i.name.lower() == schema[0]:
+                msg = i
+        await callback.message.answer(
+            str(msg.value),
+            reply_markup=Buttons.break_invoice()
+        )
+    else:
+        await MyRedisCli.delete_data(f"I{callback.from_user.id}")
+        await callback.message.answer(
+            UserAnswer.START.value,
+            reply_markup=Buttons.user_buttons()
+        )
+
+
+@LOGER.catch
+@router.callback_query(F.data.in_(
+    (ClaimButtons.CONTINUE.name, ClaimButtons.END.name)
+))
+async def continue_or_drop_claim(callback: types.CallbackQuery):
+    """Продолжение или удаление претензии"""
+    await callback.bot.edit_message_reply_markup(
+        chat_id=callback.from_user.id,
+        message_id=callback.message.message_id,
+        reply_markup=None
+    )
+    if callback.data == ClaimButtons.CONTINUE.name:
+        claim = await MyRedisCli.get_data(f"C{callback.from_user.id}")
+        claim_keys = list(claim.keys())
+        schema = list(InsertClaim.model_fields.keys())
+        for key in claim_keys:
+            if key in schema:
+                schema.remove(key)
+        msg = ''
+        for i in CreateInvoice:
+            if i.name.lower() == schema[0]:
+                msg = i
+        await callback.message.answer(
+            str(msg.value),
+            reply_markup=Buttons.break_claim()
+        )
+    else:
+        await MyRedisCli.delete_data(f"C{callback.from_user.id}")
         await callback.message.answer(
             UserAnswer.START.value,
             reply_markup=Buttons.user_buttons()

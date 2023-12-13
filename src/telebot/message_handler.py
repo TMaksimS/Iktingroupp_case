@@ -3,7 +3,7 @@
 from aiogram import F, Router, types
 
 from src.config import LOGER
-from src.static.answers import CreateInvoice, UserAnswer
+from src.static.answers import CreateInvoice, UserAnswer, CreateClaim
 from src.telebot.buttons_fab import Buttons
 from src.database.crud import InvoiceORM, UserORM
 from src.database.schemas import GetInvoice
@@ -167,6 +167,112 @@ async def invoice_to_location(message: types.Message):
         text=CreateInvoice.PAYMENT.value,
         reply_markup=Buttons.payment_type_buttons()
     )
+
+
+@LOGER.catch
+@router.message(
+    F.reply_to_message.text == CreateClaim.INVOICE_ID.value,
+)
+async def claim_invoice_id(message: types.Message):
+    """принимает описание накладной"""
+    LOGER.info(f"{message.text}")
+    await message.bot.edit_message_reply_markup(
+        chat_id=message.from_user.id,
+        message_id=message.reply_to_message.message_id,
+        reply_markup=None
+    )
+    user = await UserORM().get_user_with_invoices(message.from_user.id)
+    invoices_id = [i.id for i in user.invoices]
+    if int(message.text) in invoices_id:
+        await MyRedisCli.insert_data(
+            f"C{message.from_user.id}",
+            invoice_id=int(message.text),
+        )
+        await message.answer(
+            CreateClaim.EMAIL.value,
+            reply_markup=Buttons.break_claim()
+        )
+    else:
+        await message.answer("Не понял ваше сообщение")
+        await message.answer(
+            text=CreateClaim.INVOICE_ID.value,
+            reply_markup=Buttons.break_claim()
+        )
+
+
+@LOGER.catch
+@router.message(
+    F.reply_to_message.text == CreateClaim.EMAIL.value,
+)
+async def claim_email(message: types.Message):
+    """принимает описание накладной"""
+    LOGER.info(f"{message.text}")
+    await message.bot.edit_message_reply_markup(
+        chat_id=message.from_user.id,
+        message_id=message.reply_to_message.message_id,
+        reply_markup=None
+    )
+    await MyRedisCli.update_data(
+        f"C{message.from_user.id}",
+        email=message.text
+    )
+    await message.answer(
+        text=CreateClaim.DESCRIPTION.value,
+        reply_markup=Buttons.break_claim()
+    )
+
+
+@LOGER.catch
+@router.message(
+    F.reply_to_message.text == CreateClaim.DESCRIPTION.value,
+)
+async def claim_description(message: types.Message):
+    """принимает описание накладной"""
+    LOGER.info(f"{message.text}")
+    await message.bot.edit_message_reply_markup(
+        chat_id=message.from_user.id,
+        message_id=message.reply_to_message.message_id,
+        reply_markup=None
+    )
+    await MyRedisCli.update_data(
+        f"C{message.from_user.id}",
+        description=message.text
+    )
+    await message.answer(
+        text=CreateClaim.REQUIRED_AMOUNT.value,
+        reply_markup=Buttons.break_claim()
+    )
+
+
+@LOGER.catch
+@router.message(
+    F.reply_to_message.text == CreateClaim.REQUIRED_AMOUNT.value,
+)
+async def claim_required_amount(message: types.Message):
+    """принимает описание накладной"""
+    LOGER.info(f"{message.text}")
+    await message.bot.edit_message_reply_markup(
+        chat_id=message.from_user.id,
+        message_id=message.reply_to_message.message_id,
+        reply_markup=None
+    )
+    await MyRedisCli.update_data(
+        f"C{message.from_user.id}",
+        required_amount=message.text
+    )
+    await message.answer(
+        text=CreateClaim.PHOTOS.value,
+        reply_markup=Buttons.break_claim()
+    )
+
+
+# @LOGER.catch
+# @router.message(
+#     F.reply_to_message.text == CreateClaim.PHOTOS.value,
+# )
+# async def claim_photos(message: types.Message):
+#     """принимает фотографии для претензии"""
+#     pass
 
 
 @LOGER.catch

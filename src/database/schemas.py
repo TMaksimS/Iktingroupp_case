@@ -32,3 +32,12 @@ class InsertInvoice(MyModel):
     to_location: str
     user_id: int
     payment: str
+
+
+class InsertClaim(MyModel):
+    """schema for insert claim"""
+    invoice_id: int
+    email: str
+    description: str
+    required_amount: int
+    photos: list[str] | None

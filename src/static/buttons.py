@@ -10,9 +10,16 @@ class UserButtons(enum.Enum):
     CALL_MANAGER = "Обратиться в чат поддержки"
     BREAK_INVOICE = "Прекратить создание накладной"
     GET_ARRAY_INVOICES = "Мои накладные"
+    BREAK_CLAIM = "Прекратить создание претензии"
 
 
 class InvoiceButtons(enum.Enum):
+    """Текст для кнопок продолжения наклдной"""
+    CONTINUE = "Продолжить накладную"
+    END = "Удалить незаконченную накладную"
+
+
+class ClaimButtons(enum.Enum):
     """Текст для кнопок продолжения наклдной"""
     CONTINUE = "Продолжить накладную"
     END = "Удалить незаконченную накладную"

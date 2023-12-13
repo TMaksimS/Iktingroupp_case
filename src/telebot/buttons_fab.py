@@ -3,7 +3,7 @@
 from aiogram import types
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from src.static.buttons import UserButtons, ManagerButtons
+from src.static.buttons import UserButtons, ManagerButtons, InvoiceButtons, ClaimButtons
 from src.database.models import PaymentType
 
 
@@ -20,15 +20,43 @@ class Buttons:
         )
         builder.row(types.InlineKeyboardButton(
             text=UserButtons.CR_CLAIM.value,
-            callback_data="Create Claim")
+            callback_data=str(UserButtons.CR_CLAIM.name))
         )
         builder.row(types.InlineKeyboardButton(
             text=UserButtons.CALL_MANAGER.value,
-            callback_data="Call Manager")
+            callback_data=str(UserButtons.CALL_MANAGER.name))
         )
         builder.row(types.InlineKeyboardButton(
             text=UserButtons.GET_ARRAY_INVOICES.value,
             callback_data=str(UserButtons.GET_ARRAY_INVOICES.name))
+        )
+        return builder.as_markup()
+
+    @staticmethod
+    def continue_invoice_or_drop():
+        """Выбор продолжения/дропа накладной"""
+        builder = InlineKeyboardBuilder()
+        builder.row(types.InlineKeyboardButton(
+            text=InvoiceButtons.CONTINUE.value,
+            callback_data=str(InvoiceButtons.CONTINUE.name))
+        )
+        builder.row(types.InlineKeyboardButton(
+            text=InvoiceButtons.END.value,
+            callback_data=str(InvoiceButtons.END.name))
+        )
+        return builder.as_markup()
+
+    @staticmethod
+    def continue_claim_or_drop():
+        """Выбор продолжения/дропа претензии"""
+        builder = InlineKeyboardBuilder()
+        builder.row(types.InlineKeyboardButton(
+            text=InvoiceButtons.CONTINUE.value,
+            callback_data=str(ClaimButtons.CONTINUE.name))
+        )
+        builder.row(types.InlineKeyboardButton(
+            text=InvoiceButtons.END.value,
+            callback_data=str(ClaimButtons.END.name))
         )
         return builder.as_markup()
 
@@ -57,6 +85,16 @@ class Buttons:
         builder.row(types.InlineKeyboardButton(
             text=UserButtons.BREAK_INVOICE.value,
             callback_data=str(UserButtons.BREAK_INVOICE.name))
+        )
+        return builder.as_markup()
+
+    @staticmethod
+    def break_claim():
+        """Кнопки для отмены генерации наклданой"""
+        builder = InlineKeyboardBuilder()
+        builder.row(types.InlineKeyboardButton(
+            text=UserButtons.BREAK_CLAIM.value,
+            callback_data=str(UserButtons.BREAK_CLAIM.name))
         )
         return builder.as_markup()
 
